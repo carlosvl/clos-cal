@@ -1,0 +1,24 @@
+{
+  "name": "clos-cal",
+  "version": "1.0.0",
+  "description": "Google Workspace App",
+  "main": "index.js",
+  "scripts": {
+    "push": "clasp push",
+    "pull": "clasp pull",
+    "open": "clasp open",
+    "deploy": "clasp deploy",
+    "logs": "clasp logs"
+  },
+  "keywords": [
+    "google-workspace",
+    "apps-script"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@google/clasp": "^2.4.2",
+    "@types/google-apps-script": "^1.0.83"
+  }
+}
+

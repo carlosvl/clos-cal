@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Calendar Viewer</title>
+  
+  <!-- FullCalendar CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.20/index.global.min.css" rel="stylesheet">
+  
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+    }
+    
+    .header {
+      background-color: white;
+      padding: 16px 24px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      z-index: 100;
+    }
+    
+    .header h1 {
+      margin: 0;
+      color: #333;
+      font-size: 20px;
+      font-weight: 500;
+    }
+    
+    .menu-button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+      font-size: 24px;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    
+    .menu-button:hover {
+      background-color: #f0f0f0;
+    }
+    
+    .menu-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    
+    .menu-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .menu-panel {
+      position: fixed;
+      top: 0;
+      right: -320px;
+      width: 320px;
+      height: 100vh;
+      background-color: white;
+      box-shadow: -2px 0 8px rgba(0,0,0,0.2);
+      z-index: 1001;
+      transition: right 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    
+    .menu-overlay.active .menu-panel {
+      right: 0;
+    }
+    
+    .menu-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .menu-header h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 500;
+      color: #333;
+    }
+    
+    .menu-close {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      font-size: 24px;
+      color: #666;
+      line-height: 1;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    
+    .menu-close:hover {
+      background-color: #f0f0f0;
+    }
+    
+    .menu-items {
+      padding: 8px 0;
+      flex: 1;
+    }
+    
+    .menu-item {
+      display: block;
+      width: 100%;
+      padding: 16px 24px;
+      background: none;
+      border: none;
+      text-align: left;
+      font-size: 16px;
+      color: #333;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      font-family: inherit;
+    }
+    
+    .menu-item:hover {
+      background-color: #f5f5f5;
+    }
+    
+    .menu-item:active {
+      background-color: #e0e0e0;
+    }
+    
+    .menu-item-icon {
+      margin-right: 12px;
+      font-size: 20px;
+      vertical-align: middle;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-top: 20px;
+    }
+    
+    h1 {
+      margin-top: 0;
+      color: #333;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+    
+    .error {
+      background-color: #ffebee;
+      color: #c62828;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    
+    #calendar {
+      margin-top: 20px;
+    }
+    
+    .fc-header-toolbar {
+      margin-bottom: 1.5em;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Google Calendar Viewer</h1>
+    <button class="menu-button" onclick="toggleMenu()" aria-label="Open menu">☰</button>
+  </div>
+  
+  <div class="menu-overlay" id="menuOverlay" onclick="closeMenuOnOverlay(event)">
+    <div class="menu-panel" onclick="event.stopPropagation()">
+      <div class="menu-header">
+        <h2>Menu</h2>
+        <button class="menu-close" onclick="closeMenu()" aria-label="Close menu">×</button>
+      </div>
+      <div class="menu-items">
+        <button class="menu-item" onclick="navigateTo('home')">
+          <span class="menu-item-icon">🏠</span>
+          Home
+        </button>
+        <button class="menu-item" onclick="navigateTo('calendar')">
+          <span class="menu-item-icon">📅</span>
+          Calendar
+        </button>
+        <button class="menu-item" onclick="navigateTo('pictures')">
+          <span class="menu-item-icon">🖼️</span>
+          Pictures
+        </button>
+        <button class="menu-item" onclick="navigateTo('settings')">
+          <span class="menu-item-icon">⚙️</span>
+          Settings
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <div style="padding: 20px;">
+    <div class="container">
+      <div id="error-container"></div>
+      <div id="loading-message" class="loading">Loading calendar...</div>
+      
+      <div id="calendar"></div>
+    </div>
+  </div>
+
+  <!-- FullCalendar JS -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.20/index.global.min.js"></script>
+  
+  <script>
+    var calendarEl;
+    var calendar;
+    var selectedCalendarIds = [];
+    var allCalendars = [];
+
+    /**
+     * Initialize the page
+     */
+    document.addEventListener('DOMContentLoaded', function() {
+      try {
+        calendarEl = document.getElementById('calendar');
+        if (!calendarEl) {
+          console.error('Calendar element not found');
+          document.getElementById('loading-message').innerHTML = 'Error: Calendar container not found';
+          return;
+        }
+        loadCalendarPreferences();
+      } catch (error) {
+        console.error('Error initializing calendar:', error);
+        onError(error);
+      }
+    });
+
+    /**
+     * Load saved calendar preferences and initialize calendar
+     */
+    function loadCalendarPreferences() {
+      try {
+        google.script.run
+          .withSuccessHandler(onPreferencesLoaded)
+          .withFailureHandler(onError)
+          .loadCalendarPreferences();
+      } catch (error) {
+        console.error('Error loading preferences:', error);
+        onError(error);
+      }
+    }
+
+    /**
+     * Handle successful preferences load
+     */
+    function onPreferencesLoaded(savedCalendarIds) {
+      try {
+        selectedCalendarIds = savedCalendarIds;
+        
+        // Load calendar list for color mapping
+        google.script.run
+          .withSuccessHandler(function(calendars) {
+            try {
+              allCalendars = calendars;
+              var loadingMsg = document.getElementById('loading-message');
+              if (loadingMsg) {
+                loadingMsg.style.display = 'none';
+              }
+              initializeCalendar();
+            } catch (e) {
+              console.error('Error in calendar list handler:', e);
+              onError(e);
+            }
+          })
+          .withFailureHandler(onError)
+          .getCalendars();
+      } catch (error) {
+        console.error('Error in onPreferencesLoaded:', error);
+        onError(error);
+      }
+    }
+
+    /**
+     * Initialize FullCalendar
+     */
+    function initializeCalendar() {
+      try {
+        if (!calendarEl) {
+          console.error('Calendar element is null');
+          onError(new Error('Calendar container not found'));
+          return;
+        }
+        
+        calendar = new FullCalendar.Calendar(calendarEl, {
+          initialView: 'timeGridWeek',
+          headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+          },
+          events: function(info, successCallback, failureCallback) {
+            fetchEvents(info.start, info.end, successCallback, failureCallback);
+          },
+          eventTimeFormat: {
+            hour: 'numeric',
+            minute: '2-digit',
+            meridiem: 'short'
+          },
+          height: 'auto',
+          aspectRatio: 1.8
+        });
+
+        calendar.render();
+      } catch (error) {
+        console.error('Error initializing FullCalendar:', error);
+        onError(error);
+      }
+    }
+
+    /**
+     * Fetch events for the given date range
+     */
+    function fetchEvents(startDate, endDate, successCallback, failureCallback) {
+      if (selectedCalendarIds.length === 0) {
+        successCallback([]);
+        return;
+      }
+
+      const startStr = formatDateForServer(startDate);
+      const endStr = formatDateForServer(endDate);
+
+      google.script.run
+        .withSuccessHandler(function(events) {
+          try {
+            // Format events for FullCalendar
+            var formattedEvents = events.map(function(event) {
+              return {
+                id: event.id,
+                title: event.title,
+                start: event.start,
+                end: event.end,
+                allDay: event.allDay,
+                backgroundColor: getCalendarColor(event.calendarId),
+                borderColor: getCalendarColor(event.calendarId),
+                extendedProps: {
+                  location: event.location || '',
+                  description: event.description || '',
+                  calendarName: event.calendarName || ''
+                }
+              };
+            });
+            successCallback(formattedEvents);
+          } catch (e) {
+            console.error('Error formatting events:', e);
+            failureCallback(e);
+          }
+        })
+        .withFailureHandler(failureCallback)
+        .getCalendarEvents(selectedCalendarIds, startStr, endStr);
+    }
+
+    /**
+     * Get a color for a calendar based on its ID
+     */
+    function getCalendarColor(calendarId) {
+      var index = -1;
+      for (var i = 0; i < allCalendars.length; i++) {
+        if (allCalendars[i].id === calendarId) {
+          index = i;
+          break;
+        }
+      }
+      var colors = [
+        '#2196F3', '#4CAF50', '#FF9800', '#9C27B0',
+        '#F44336', '#00BCD4', '#FFEB3B', '#795548',
+        '#E91E63', '#009688', '#FF5722', '#673AB7'
+      ];
+      if (index < 0) {
+        index = 0;
+      }
+      return colors[index % colors.length];
+    }
+
+    /**
+     * Format date for server (YYYY-MM-DD)
+     */
+    function formatDateForServer(date) {
+      var year = date.getFullYear();
+      var month = String(date.getMonth() + 1);
+      if (month.length === 1) {
+        month = '0' + month;
+      }
+      var day = String(date.getDate());
+      if (day.length === 1) {
+        day = '0' + day;
+      }
+      return year + '-' + month + '-' + day;
+    }
+
+    /**
+     * Display error message
+     */
+    function onError(error) {
+      try {
+        var errorContainer = document.getElementById('error-container');
+        var loadingMessage = document.getElementById('loading-message');
+        if (loadingMessage) {
+          loadingMessage.style.display = 'none';
+        }
+        if (errorContainer) {
+          var errorMsg = 'Error: ' + (error && error.message ? error.message : String(error));
+          errorContainer.innerHTML = '<div class="error">' + escapeHtml(errorMsg) + '</div>';
+        }
+        console.error('Error:', error);
+      } catch (e) {
+        console.error('Error displaying error message:', e);
+      }
+    }
+
+    /**
+     * Escape HTML to prevent XSS
+     */
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    /**
+     * Toggle menu visibility
+     */
+    function toggleMenu() {
+      var overlay = document.getElementById('menuOverlay');
+      overlay.classList.toggle('active');
+    }
+    
+    /**
+     * Close menu
+     */
+    function closeMenu() {
+      var overlay = document.getElementById('menuOverlay');
+      overlay.classList.remove('active');
+    }
+    
+    /**
+     * Close menu when clicking on overlay background
+     */
+    function closeMenuOnOverlay(event) {
+      if (event.target.id === 'menuOverlay') {
+        closeMenu();
+      }
+    }
+    
+    /**
+     * Navigate to a different page by updating the URL query parameter
+     */
+    function navigateTo(page) {
+      closeMenu();
+      
+      var targetWindow = window;
+      var deploymentUrl = '';
+      
+      try {
+        if (window.top && window.top !== window) {
+          targetWindow = window.top;
+          deploymentUrl = window.top.location.href;
+        } else {
+          deploymentUrl = window.location.href;
+        }
+      } catch (e) {
+        deploymentUrl = 'https://script.google.com/a/macros/carlosvillalpando.com/s/AKfycbzzDIJFa6lf5QM2L-JAyLqKSkrjJywNpSN1wJC-CSC_HCgeByk1yelTTD_Nlzw8_Rhi/exec';
+      }
+      
+      var baseUrl = deploymentUrl.split('?')[0];
+      if (baseUrl.includes('userCodeAppPanel')) {
+        baseUrl = 'https://script.google.com/a/macros/carlosvillalpando.com/s/AKfycbzzDIJFa6lf5QM2L-JAyLqKSkrjJywNpSN1wJC-CSC_HCgeByk1yelTTD_Nlzw8_Rhi/exec';
+      }
+      
+      var newUrl = baseUrl + '?page=' + encodeURIComponent(page);
+      targetWindow.location.href = newUrl;
+    }
+    
+    // Close menu on Escape key
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        closeMenu();
+      }
+    });
+  </script>
+</body>
+</html>
+
